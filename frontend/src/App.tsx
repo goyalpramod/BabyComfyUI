@@ -69,3 +69,19 @@ function Flow() {
 }
 
 export default Flow;
+
+
+// References
+// https://reactflow.dev/examples/nodes/add-node-on-edge-drop
+// https://reactflow.dev/examples/nodes/node-toolbar
+// https://reactflow.dev/examples/nodes/node-resizer
+// https://reactflow.dev/examples/nodes/proximity-connect
+// https://reactflow.dev/examples/edges/custom-connectionline
+// https://reactflow.dev/examples/edges/markers
+// https://reactflow.dev/examples/interaction/computing-flows
+// https://reactflow.dev/examples/interaction/context-menu
+// https://reactflow.dev/examples/interaction/save-and-restore
+// https://reactflow.dev/examples/grouping/sub-flows
+// https://reactflow.dev/examples/layout/elkjs
+// https://reactflow.dev/examples/styling/dark-mode
+// https://reactflow.dev/examples/styling/tailwind
