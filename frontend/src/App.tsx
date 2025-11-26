@@ -1,57 +1,107 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   ReactFlow,
   Controls,
   Background,
-  applyNodeChanges,
-  applyEdgeChanges,
+  useNodesState,
+  useEdgesState,
   addEdge,
+  useReactFlow,
+  ReactFlowProvider,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { TextUpdaterNode } from './components/Nodes';
+import { TextInputNode, ModelSelectorNode, OutputNode } from './components/Nodes';
 
 const nodeTypes = {
-  textUpdater: TextUpdaterNode,
+  textInput: TextInputNode,
+  modelSelector: ModelSelectorNode,
+  output: OutputNode,
 };
 
 const initialNodes = [
   {
-    id: 'n1',
-    data: { label: 'Node 1' },
-    position: { x: 0, y: 0 },
-    type: 'textUpdater',
-  },
-  {
-    id: 'n2',
-    data: { label: 'Node 2' },
-    position: { x: 100, y: 100 },
+    id: 'text-1',
+    type: 'textInput',
+    data: { text: '' },
+    position: { x: 50, y: 150 },
   },
 ];
 
-const initialEdges = [
-  { id: 'n1-n2', source: 'n1', target: 'n2', label: 'connects with' },
-];
+let id = 2;
+const getId = () => `node-${id++}`;
 
 function Flow() {
-  const [nodes, setNodes] = useState(initialNodes);
-  const [edges, setEdges] = useState(initialEdges);
-
-  const onNodesChange = useCallback(
-    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
-    [],
-  );
-  const onEdgesChange = useCallback(
-    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    [],
-  );
+  const reactFlowWrapper = useRef(null);
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const { screenToFlowPosition } = useReactFlow();
+  const [menu, setMenu] = useState(null);
+  const [pendingConnection, setPendingConnection] = useState(null);
 
   const onConnect = useCallback(
-    (params) => setEdges((edgesSnapshot) => addEdge(params, edgesSnapshot)),
+    (params) => setEdges((eds) => addEdge(params, eds)),
     [],
   );
 
+  const onConnectEnd = useCallback(
+    (event, connectionState) => {
+      if (!connectionState.isValid) {
+        const { clientX, clientY } =
+          'changedTouches' in event ? event.changedTouches[0] : event;
+
+        setMenu({
+          x: clientX,
+          y: clientY,
+        });
+        setPendingConnection(connectionState);
+      }
+    },
+    [screenToFlowPosition],
+  );
+
+  const createNode = useCallback(
+    (type) => {
+      if (!menu || !pendingConnection) return;
+
+      const newNodeId = getId();
+      const position = screenToFlowPosition({
+        x: menu.x,
+        y: menu.y,
+      });
+
+      const newNode = {
+        id: newNodeId,
+        type,
+        position,
+        data: type === 'textInput'
+          ? { text: '' }
+          : type === 'modelSelector'
+          ? { model: 'gpt-4' }
+          : { imagePath: '' },
+      };
+
+      setNodes((nds) => nds.concat(newNode));
+      setEdges((eds) =>
+        eds.concat({
+          id: `${pendingConnection.fromNode.id}-${newNodeId}`,
+          source: pendingConnection.fromNode.id,
+          target: newNodeId,
+        }),
+      );
+
+      setMenu(null);
+      setPendingConnection(null);
+    },
+    [menu, pendingConnection, screenToFlowPosition],
+  );
+
+  const closeMenu = useCallback(() => {
+    setMenu(null);
+    setPendingConnection(null);
+  }, []);
+
   return (
-    <div style={{ height: '100%' }}>
+    <div style={{ height: '100%', position: 'relative' }} ref={reactFlowWrapper}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -59,16 +109,49 @@ function Flow() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onConnectEnd={onConnectEnd}
         fitView
+        fitViewOptions={{ padding: 2 }}
       >
         <Background />
         <Controls />
       </ReactFlow>
+
+      {menu && (
+        <>
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 999,
+            }}
+            onClick={closeMenu}
+          />
+          <div
+            className="node-menu"
+            style={{
+              left: menu.x,
+              top: menu.y,
+            }}
+          >
+            <button onClick={() => createNode('textInput')}>Text Input</button>
+            <button onClick={() => createNode('modelSelector')}>Model Selector</button>
+            <button onClick={() => createNode('output')}>Output</button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-export default Flow;
+export default () => (
+  <ReactFlowProvider>
+    <Flow />
+  </ReactFlowProvider>
+);
 
 
 // References
