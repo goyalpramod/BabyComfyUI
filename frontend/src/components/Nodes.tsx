@@ -1,12 +1,26 @@
 import { useCallback } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, useReactFlow } from '@xyflow/react';
 
 export function TextInputNode({ data, id }) {
+  const { setNodes } = useReactFlow();
+
   const onChange = useCallback((evt) => {
-    // Update the data directly - ReactFlow will handle the state
-    data.text = evt.target.value;
-    console.log('Text Input:', evt.target.value);
-  }, [data]);
+    const value = evt.target.value;
+    console.log('Text Input:', value);
+
+    // Properly update node data through ReactFlow
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.id === id) {
+          return {
+            ...node,
+            data: { ...node.data, text: value },
+          };
+        }
+        return node;
+      })
+    );
+  }, [id, setNodes]);
 
   return (
     <div className="custom-node text-input-node">
@@ -26,6 +40,8 @@ export function TextInputNode({ data, id }) {
 }
 
 export function ModelSelectorNode({ data, id }) {
+  const { setNodes } = useReactFlow();
+
   const models = [
     'gpt-4',
     'gpt-3.5-turbo',
@@ -37,10 +53,22 @@ export function ModelSelectorNode({ data, id }) {
   ];
 
   const onChange = useCallback((evt) => {
-    // Update the data directly - ReactFlow will handle the state
-    data.model = evt.target.value;
-    console.log('Selected Model:', evt.target.value);
-  }, [data]);
+    const value = evt.target.value;
+    console.log('Selected Model:', value);
+
+    // Properly update node data through ReactFlow
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.id === id) {
+          return {
+            ...node,
+            data: { ...node.data, model: value },
+          };
+        }
+        return node;
+      })
+    );
+  }, [id, setNodes]);
 
   return (
     <div className="custom-node model-selector-node">

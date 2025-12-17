@@ -53,6 +53,7 @@ function Flow() {
           x: clientX,
           y: clientY,
         });
+        // Store the full connection state including handle info
         setPendingConnection(connectionState);
       }
     },
@@ -80,12 +81,20 @@ function Flow() {
           : { imagePath: '' },
       };
 
+      // Determine target handle based on node type
+      const targetHandle = type === 'modelSelector' ? 'prompt' : type === 'output' ? 'image' : null;
+
+      // Get source handle from the connection state
+      const sourceHandle = pendingConnection.fromHandle?.id;
+
       setNodes((nds) => nds.concat(newNode));
       setEdges((eds) =>
         eds.concat({
           id: `${pendingConnection.fromNode.id}-${newNodeId}`,
           source: pendingConnection.fromNode.id,
+          sourceHandle: sourceHandle,
           target: newNodeId,
+          targetHandle: targetHandle,
         }),
       );
 
@@ -101,17 +110,22 @@ function Flow() {
   }, []);
 
   // 1. Serialize workflow to JSON
-  const serializeWorkflow = () => ({
-    prompt: Object.fromEntries(
-      nodes.map(node => [
-        node.id,
-        {
-          class_type: node.type,  // Must match backend NODE_CLASS_MAPPINGS
-          inputs: extractInputs(node, edges)
-        }
-      ])
-    )
-  });
+  const serializeWorkflow = () => {
+    console.log('Current edges:', edges);
+    console.log('Current nodes:', nodes);
+
+    return {
+      prompt: Object.fromEntries(
+        nodes.map(node => [
+          node.id,
+          {
+            class_type: node.type,  // Must match backend NODE_CLASS_MAPPINGS
+            inputs: extractInputs(node, edges)
+          }
+        ])
+      )
+    };
+  };
 
   // 2. Extract inputs helper
   const extractInputs = (node, edges) => {
@@ -149,6 +163,9 @@ function Flow() {
   // 4. Execute function
   const executeWorkflow = async () => {
     const workflow = serializeWorkflow();
+
+    // Debug: log the workflow being sent
+    console.log('Sending workflow:', JSON.stringify(workflow, null, 2));
 
     const response = await fetch('http://localhost:8188/prompt', {
       method: 'POST',

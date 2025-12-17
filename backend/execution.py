@@ -99,6 +99,10 @@ class MinimalExecutor:
         # Resolve inputs
         inputs = self.resolve_inputs(node_info, prompt)
 
+        # Debug logging
+        print(f"Executing node {node_id} ({class_type})")
+        print(f"  Inputs received: {inputs}")
+
         # Execute
         instance = node_class()
         result = instance.execute(**inputs)
@@ -117,6 +121,8 @@ class MinimalExecutor:
         inputs = {}
         node_inputs = node_info.get('inputs', {})
 
+        print(f"  Raw node inputs: {node_inputs}")
+
         for input_name, input_value in node_inputs.items():
             # Check if it's a link: [source_node_id, output_index]
             if isinstance(input_value, list) and len(input_value) == 2:
@@ -126,8 +132,12 @@ class MinimalExecutor:
                 # Get output from executed node
                 if source_node_id in self.outputs:
                     inputs[input_name] = self.outputs[source_node_id]
+                    print(f"    Resolved link {input_name}: {source_node_id} -> {inputs[input_name]}")
+                else:
+                    print(f"    WARNING: Source node {source_node_id} not found in outputs for input {input_name}")
             else:
                 # Direct value
                 inputs[input_name] = input_value
+                print(f"    Direct value {input_name}: {input_value}")
 
         return inputs
