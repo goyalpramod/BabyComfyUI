@@ -100,6 +100,50 @@ function Flow() {
     setPendingConnection(null);
   }, []);
 
+  // 1. Serialize workflow to JSON
+  const serializeWorkflow = () => ({
+    prompt: Object.fromEntries(
+      nodes.map(node => [
+        node.id,
+        {
+          class_type: node.type,  // Must match backend NODE_CLASS_MAPPINGS
+          inputs: extractInputs(node, edges)
+        }
+      ])
+    )
+  });
+
+  // 2. Extract inputs helper
+  const extractInputs = (node, edges) => {
+    const inputs = {...node.data};  // Start with node's own data
+
+    // Add connected inputs from edges
+    edges.forEach(edge => {
+      if (edge.target === node.id) {
+        // Format: [source_node_id, source_output_index]
+        inputs[edge.targetHandle] = [edge.source, 0];
+      }
+    });
+
+    return inputs;
+  };
+
+  // 3. Execute function
+  const executeWorkflow = async () => {
+    const workflow = serializeWorkflow();
+
+    const response = await fetch('http://localhost:8188/prompt', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(workflow)
+    });
+
+    const result = await response.json();
+
+    // Handle result (update output nodes)
+    updateOutputNodes(result);
+  };
+
   return (
     <div style={{ height: '100%', position: 'relative' }} ref={reactFlowWrapper}>
       <ReactFlow
@@ -143,6 +187,11 @@ function Flow() {
           </div>
         </>
       )}
+      <div className="execute-button-container" style={{ position: 'absolute', top: 10, right: 10 }}>
+        <button className="execute-button" onClick={executeWorkflow}>
+          Execute Workflow
+        </button>
+      </div>
     </div>
   );
 }
