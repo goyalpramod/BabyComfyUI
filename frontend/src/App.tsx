@@ -77,7 +77,7 @@ function Flow() {
         data: type === 'textInput'
           ? { text: '' }
           : type === 'modelSelector'
-          ? { model: 'gpt-4' }
+          ? { model: 'segmind/tiny-sd' }
           : { imagePath: '' },
       };
 
@@ -111,9 +111,6 @@ function Flow() {
 
   // 1. Serialize workflow to JSON
   const serializeWorkflow = () => {
-    console.log('Current edges:', edges);
-    console.log('Current nodes:', nodes);
-
     return {
       prompt: Object.fromEntries(
         nodes.map(node => [
@@ -131,6 +128,11 @@ function Flow() {
   const extractInputs = (node, edges) => {
     const inputs = {...node.data};  // Start with node's own data
 
+    // Remove frontend-only properties that aren't backend inputs
+    if (node.type === 'output') {
+      delete inputs.imagePath;  // imagePath is only for frontend display
+    }
+
     // Add connected inputs from edges
     edges.forEach(edge => {
       if (edge.target === node.id) {
@@ -147,12 +149,15 @@ function Flow() {
 
   // 3. Update output nodes with results
   const updateOutputNodes = (result) => {
+    // Extract outputs from the response (server returns {prompt_id, outputs})
+    const outputs = result.outputs || result;
+
     setNodes((nds) =>
       nds.map((node) => {
-        if (node.type === 'output' && result[node.id]) {
+        if (node.type === 'output' && outputs[node.id]) {
           return {
             ...node,
-            data: { ...node.data, imagePath: result[node.id] },
+            data: { ...node.data, imagePath: outputs[node.id] },
           };
         }
         return node;
@@ -162,21 +167,34 @@ function Flow() {
 
   // 4. Execute function
   const executeWorkflow = async () => {
-    const workflow = serializeWorkflow();
+    try {
+      const workflow = serializeWorkflow();
 
-    // Debug: log the workflow being sent
-    console.log('Sending workflow:', JSON.stringify(workflow, null, 2));
+      // Debug: log the workflow being sent
+      console.log('Sending workflow:', JSON.stringify(workflow, null, 2));
 
-    const response = await fetch('http://localhost:8188/prompt', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(workflow)
-    });
+      const response = await fetch('http://localhost:8188/prompt', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(workflow)
+      });
 
-    const result = await response.json();
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server error:', errorText);
+        alert(`Error: ${response.status} - ${errorText}`);
+        return;
+      }
 
-    // Handle result (update output nodes)
-    updateOutputNodes(result);
+      const result = await response.json();
+      console.log('Received result:', result);
+
+      // Handle result (update output nodes)
+      updateOutputNodes(result);
+    } catch (error) {
+      console.error('Workflow execution error:', error);
+      alert(`Error executing workflow: ${error.message}`);
+    }
   };
 
   return (

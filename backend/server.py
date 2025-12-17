@@ -88,6 +88,17 @@ class MinimalComfyServer:
                 output.save(buffer, format='PNG')
                 img_str = base64.b64encode(buffer.getvalue()).decode()
                 serialized[node_id] = f"data:image/png;base64,{img_str}"
+            # Handle file paths - read image and convert to base64
+            elif isinstance(output, str) and output.endswith(('.png', '.jpg', '.jpeg')):
+                import base64
+                from pathlib import Path
+                filepath = Path(output)
+                if filepath.exists():
+                    with open(filepath, 'rb') as f:
+                        img_str = base64.b64encode(f.read()).decode()
+                    serialized[node_id] = f"data:image/png;base64,{img_str}"
+                else:
+                    serialized[node_id] = output
             else:
                 serialized[node_id] = output
 

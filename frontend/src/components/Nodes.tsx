@@ -43,13 +43,7 @@ export function ModelSelectorNode({ data, id }) {
   const { setNodes } = useReactFlow();
 
   const models = [
-    'gpt-4',
-    'gpt-3.5-turbo',
-    'claude-3-opus',
-    'claude-3-sonnet',
-    'dall-e-3',
-    'stable-diffusion-xl',
-    'midjourney-v6',
+    'segmind/tiny-sd',  // 55% smaller than SD1.5, CPU-friendly, ~3GB
   ];
 
   const onChange = useCallback((evt) => {
@@ -75,7 +69,7 @@ export function ModelSelectorNode({ data, id }) {
       <Handle type="target" position={Position.Left} id="prompt" />
       <div className="node-header">Model Selector</div>
       <div className="node-content">
-        <select value={data.model || 'gpt-4'} onChange={onChange} className="nodrag">
+        <select value={data.model || 'segmind/tiny-sd'} onChange={onChange} className="nodrag">
           {models.map((model) => (
             <option key={model} value={model}>
               {model}

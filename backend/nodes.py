@@ -37,7 +37,7 @@ class SimpleImageGen(BaseNode):
         return {
             "required": {
                 "prompt": ("STRING",),
-                "model": ("STRING", {"default": "stable-diffusion-v1-5"})
+                "model": ("STRING", {"default": "segmind/tiny-sd"})
             }
         }
 
@@ -48,15 +48,19 @@ class SimpleImageGen(BaseNode):
         from diffusers import StableDiffusionPipeline
         import torch
 
-        # Load model
+        print(f"Loading model: {model}")
+
+        # Load model - use float32 for CPU compatibility
         pipe = StableDiffusionPipeline.from_pretrained(
             model,
-            torch_dtype=torch.float16
+            torch_dtype=torch.float32  # Use float32 for CPU
         )
-        pipe = pipe.to("cuda" if torch.cuda.is_available() else "cpu")
+        pipe = pipe.to("cpu")  # Force CPU for now
 
-        # Generate
-        image = pipe(prompt, num_inference_steps=20).images[0]
+        print(f"Generating image with prompt: {prompt}")
+        # Generate with fewer steps for faster CPU inference
+        image = pipe(prompt, num_inference_steps=10).images[0]
+        print("Image generated successfully")
         return (image,)
 
 class OutputNode(BaseNode):
@@ -69,11 +73,27 @@ class OutputNode(BaseNode):
             }
         }
 
-    RETURN_TYPES = ()  # No outputs
+    RETURN_TYPES = ("STRING",)  # Return image path
 
     def execute(self, image):
-        # Just pass through - server will serialize
-        return (image,)
+        import os
+        import uuid
+        from pathlib import Path
+
+        # Create output directory if it doesn't exist
+        output_dir = Path("outputs")
+        output_dir.mkdir(exist_ok=True)
+
+        # Generate unique filename
+        filename = f"{uuid.uuid4()}.png"
+        filepath = output_dir / filename
+
+        # Save the PIL image
+        image.save(filepath)
+        print(f"Saved image to: {filepath}")
+
+        # Return relative path that frontend can use
+        return (str(filepath),)
 
 # Export - keys must match React Flow node types
 NODE_CLASS_MAPPINGS = {
