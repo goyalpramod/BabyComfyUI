@@ -1,20 +1,19 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { Handle, Position } from '@xyflow/react';
 
-export function TextInputNode({ data }) {
-  const [text, setText] = useState(data?.text || '');
-
+export function TextInputNode({ data, id }) {
   const onChange = useCallback((evt) => {
-    setText(evt.target.value);
+    // Update the data directly - ReactFlow will handle the state
+    data.text = evt.target.value;
     console.log('Text Input:', evt.target.value);
-  }, []);
+  }, [data]);
 
   return (
     <div className="custom-node text-input-node">
       <div className="node-header">Text Input</div>
       <div className="node-content">
         <textarea
-          value={text}
+          value={data.text || ''}
           onChange={onChange}
           placeholder="Enter your text here..."
           className="nodrag"
@@ -26,9 +25,7 @@ export function TextInputNode({ data }) {
   );
 }
 
-export function ModelSelectorNode({ data }) {
-  const [selectedModel, setSelectedModel] = useState(data?.model || 'gpt-4');
-
+export function ModelSelectorNode({ data, id }) {
   const models = [
     'gpt-4',
     'gpt-3.5-turbo',
@@ -40,16 +37,17 @@ export function ModelSelectorNode({ data }) {
   ];
 
   const onChange = useCallback((evt) => {
-    setSelectedModel(evt.target.value);
+    // Update the data directly - ReactFlow will handle the state
+    data.model = evt.target.value;
     console.log('Selected Model:', evt.target.value);
-  }, []);
+  }, [data]);
 
   return (
     <div className="custom-node model-selector-node">
-      <Handle type="target" position={Position.Left} id="model-input" />
+      <Handle type="target" position={Position.Left} id="prompt" />
       <div className="node-header">Model Selector</div>
       <div className="node-content">
-        <select value={selectedModel} onChange={onChange} className="nodrag">
+        <select value={data.model || 'gpt-4'} onChange={onChange} className="nodrag">
           {models.map((model) => (
             <option key={model} value={model}>
               {model}
@@ -57,22 +55,20 @@ export function ModelSelectorNode({ data }) {
           ))}
         </select>
       </div>
-      <Handle type="source" position={Position.Right} id="model-output" />
+      <Handle type="source" position={Position.Right} id="image" />
     </div>
   );
 }
 
-export function OutputNode({ data }) {
-  const [imagePath, setImagePath] = useState(data?.imagePath || '');
-
+export function OutputNode({ data, id }) {
   return (
     <div className="custom-node output-node">
-      <Handle type="target" position={Position.Left} id="output-input" />
+      <Handle type="target" position={Position.Left} id="image" />
       <div className="node-header">Output</div>
       <div className="node-content">
         <div className="output-preview">
-          {imagePath ? (
-            <img src={imagePath} alt="Output" />
+          {data.imagePath ? (
+            <img src={data.imagePath} alt="Output" />
           ) : (
             <div className="output-placeholder">
               <span>No output yet</span>

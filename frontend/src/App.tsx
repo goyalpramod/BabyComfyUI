@@ -120,15 +120,33 @@ function Flow() {
     // Add connected inputs from edges
     edges.forEach(edge => {
       if (edge.target === node.id) {
-        // Format: [source_node_id, source_output_index]
-        inputs[edge.targetHandle] = [edge.source, 0];
+        // Only add if targetHandle is defined (not undefined)
+        if (edge.targetHandle) {
+          // Format: [source_node_id, source_output_index]
+          inputs[edge.targetHandle] = [edge.source, 0];
+        }
       }
     });
 
     return inputs;
   };
 
-  // 3. Execute function
+  // 3. Update output nodes with results
+  const updateOutputNodes = (result) => {
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.type === 'output' && result[node.id]) {
+          return {
+            ...node,
+            data: { ...node.data, imagePath: result[node.id] },
+          };
+        }
+        return node;
+      })
+    );
+  };
+
+  // 4. Execute function
   const executeWorkflow = async () => {
     const workflow = serializeWorkflow();
 

@@ -1,0 +1,8 @@
+aiohttp
+aiohttp-cors  # For CORS
+torch
+diffusers
+transformers
+pillow
+accelerate
+safetensors
